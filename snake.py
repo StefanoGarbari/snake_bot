@@ -5,6 +5,7 @@ import dxcam
 import time
 
 pyautogui.PAUSE = 0
+BLUE_TO_CELL_RATIO =0.05
 
 green_border = np.array([48,159,138])
 
@@ -74,6 +75,10 @@ def cell_to_point(x, y):
     xr = int(len(img[0])*(x+0.5)//grid_size_x)
     return (xr,yr)
 
+THRESHOLD = len(img)//grid_size_y * len(img[0])//grid_size_x * 255* BLUE_TO_CELL_RATIO
+
+direction = 'd'
+
 while True:
     img = camera.get_latest_frame()[y_grid:y_grid+h_grid, x_grid:x_grid+w_grid]
     
@@ -86,67 +91,41 @@ while True:
         head_y, head_x = np.unravel_index(np.argmax(sums), sums.shape)
         draw_rectangle(img,head_x,head_y,(0,255,255),2)
 
-
+        
         mask = cv2.inRange(hsvimg, blue_lower, blue_upper)
-        curr_x = head_x
-        curr_y = head_y
-        direction = ""
 
-        while True:
-            print(curr_x, curr_y)
-            sq = square(mask,curr_x,curr_y)
-            up = np.sum(sq[0, :]) if direction != "down" else 0
-            left = np.sum(sq[:, 0]) if direction != "right" else 0
-            down = np.sum(sq[-1, :]) if direction != "up" else 0
-            right = np.sum(sq[:, -1]) if direction != "left" else 0
-
-            max_value = max(up, left, down, right)
-            if max_value == 0:
-                break
-
-            if max_value == up:
-                cv2.line(img, cell_to_point(curr_x,curr_y), cell_to_point(curr_x, curr_y-1),(255,255,255), 2)
-                direction = "up"
-                curr_y -= 1
-            elif max_value == left:
-                cv2.line(img, cell_to_point(curr_x,curr_y), cell_to_point(curr_x-1, curr_y),(255,255,255), 2)
-                direction = "left"
-                curr_x -= 1
-            elif max_value == down:
-                cv2.line(img, cell_to_point(curr_x,curr_y), cell_to_point(curr_x, curr_y+1),(255,255,255), 2)
-                direction = "down"
-                curr_y += 1
-            elif max_value == right:
-                cv2.line(img, cell_to_point(curr_x,curr_y), cell_to_point(curr_x+1, curr_y),(255,255,255), 2)
-                direction = "right"
-                curr_x += 1
-            else:
-                break
-
-
+        #body = cv2.bitwise_or(hsvimg, hsvimg, mask=mask)
+       
 
         for y in range(grid_size_y):
             for x in range(grid_size_x):
                 s = square(mask,x,y)
-                if np.sum(s) > 400000:
+                if np.sum(s) > THRESHOLD:
                     draw_rectangle(img,x,y,(0,0,255),1)
-                    #if s[len(img)//grid_size_y//2, 0] != 0:
-                    #    cv2.line(img, cell_to_point(x,y), cell_to_point(x-1, y),(255,255,255), 2)
+
+        grid = [['x' if np.sum(square(mask,x,y)) > THRESHOLD else ' ' for x in range(grid_size_x)] for y in range(grid_size_y)]
         
-        grid = [['s' if np.sum(square(mask,x,y)) > 340000 else ' ' for x in range(grid_size_x)] for y in range(grid_size_y)]
+        grid = [
+            [' ',' ',' ',' ',' ',' ',' ',' ','d','s'],
+            [' ','d','d','d','d','d','d','d','w','s'],
+            [' ','w','s','a','s','a','s','a',' ','s'],
+            [' ','w','a','w','a','w','a','w',' ','s'],
+            [' ','d','d','d','d','d','d','w',' ','s'],
+            [' ','w',' ',' ',' ',' ',' ',' ',' ','s'],
+            ['d','w',' ',' ',' ',' ',' ',' ','s','a'],
+            ['w',' ',' ',' ',' ',' ',' ','s','a',' '],
+            ['w','a','a','a','a','a','a','a',' ',' '],
+        ]
 
+        if direction != grid[head_y][head_x]:
+            if(grid[head_y][head_x] == ' '):
+                print("FUORI TRACCIATO")
+                print(head_x, head_y)
+                exit()
+            direction = grid[head_y][head_x]
+            pyautogui.press(direction)
 
-
-        """if(head_x == 9 and head_y == 4):
-            pyautogui.press('w')
-        if(head_x == 9 and head_y == 0):
-            pyautogui.press('a')
-        if(head_x == 0 and head_y == 0):
-            pyautogui.press('s')
-        if(head_x == 0 and head_y == 4):
-            pyautogui.press('d')"""
-
-
+        
         cv2.imshow("ciao", img)
 
 
