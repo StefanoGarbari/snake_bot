@@ -2,7 +2,6 @@ import cv2
 import pyautogui
 import numpy as np
 import dxcam
-import time
 
 pyautogui.PAUSE = 0
 BLUE_TO_CELL_RATIO =0.05
@@ -191,7 +190,7 @@ while True:
         #print(grid)
         #exit()
         if grid[head_y][head_x] == ' ' or grid[head_y][head_x] == 'x':
-            print("FUORI TRACCIATO")
+            print("off track!")
             print(head_x, head_y)
             grid = [['x' if np.sum(square(mask,x,y)) > THRESHOLD else ' ' for x in range(grid_size_x)] for y in range(grid_size_y)]
             path_to_apple(grid, (head_y, head_x), (apple_y, apple_x))
