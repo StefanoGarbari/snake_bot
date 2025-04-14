@@ -136,7 +136,10 @@ def path_to_apple(grid, head, apple):
     
 
 
-
+last_y = -1
+last_x = -1
+head_y = -1
+head_x = -1
 
 THRESHOLD = len(img)//grid_size_y * len(img[0])//grid_size_x * 255* BLUE_TO_CELL_RATIO
 
@@ -148,16 +151,25 @@ while True:
     
     if img[0][0][0] is not None:
         hsvimg = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+        bgrimg = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
         mask = cv2.inRange(hsvimg, head_lower, head_upper)
         sums = np.array([[np.sum(square(mask, x, y)) for x in range(grid_size_x)] for y in range(grid_size_y)])
-        head_y, head_x = np.unravel_index(np.argmax(sums), sums.shape)
-        draw_rectangle(img,head_x,head_y,(0,255,255),2)
+        temp_y, temp_x = np.unravel_index(np.argmax(sums), sums.shape)
+
+        if not(temp_y == last_y and temp_x == last_x):
+            last_y = head_y
+            last_x = head_x
+            head_y = temp_y
+            head_x = temp_x
+        
+
+        draw_rectangle(bgrimg,head_x,head_y,(0,255,255),2)
 
         mask = cv2.inRange(hsvimg,red_lower, red_upper)
         sums = np.array([[np.sum(square(mask, x, y)) for x in range(grid_size_x)] for y in range(grid_size_y)])
         apple_y, apple_x = np.unravel_index(np.argmax(sums), sums.shape)
-        draw_rectangle(img,apple_x,apple_y,(255,0,0),2)
+        draw_rectangle(bgrimg,apple_x,apple_y,(255,0,0),2)
         
         mask = cv2.inRange(hsvimg, blue_lower, blue_upper)
         #body = cv2.bitwise_or(hsvimg, hsvimg, mask=mask)
@@ -166,10 +178,10 @@ while True:
             for x in range(grid_size_x):
                 s = square(mask,x,y)
                 if np.sum(s) > THRESHOLD:
-                    draw_rectangle(img,x,y,(0,0,255),1)
+                    draw_rectangle(bgrimg,x,y,(0,0,255),1)
 
                 if grid[y][x] in ('w','a','s','d'):
-                    draw_line(img,x,y,grid[y][x],(255,255,255),2d)
+                    draw_line(bgrimg,x,y,grid[y][x],(255,255,255),2)
                     
 
         #grid = [['x' if np.sum(square(mask,x,y)) > THRESHOLD else ' ' for x in range(grid_size_x)] for y in range(grid_size_y)]
@@ -178,20 +190,18 @@ while True:
         #path_to_apple(grid, (head_y, head_x), (apple_y, apple_x))
         #print(grid)
         #exit()
-        
+        if grid[head_y][head_x] == ' ' or grid[head_y][head_x] == 'x':
+            print("FUORI TRACCIATO")
+            print(head_x, head_y)
+            grid = [['x' if np.sum(square(mask,x,y)) > THRESHOLD else ' ' for x in range(grid_size_x)] for y in range(grid_size_y)]
+            path_to_apple(grid, (head_y, head_x), (apple_y, apple_x))
+
         if direction != grid[head_y][head_x]:
-            if grid[head_y][head_x] == ' ' or grid[head_y][head_x] == 'x':
-                print("FUORI TRACCIATO")
-                print(head_x, head_y)
-                grid = [['x' if np.sum(square(mask,x,y)) > THRESHOLD else ' ' for x in range(grid_size_x)] for y in range(grid_size_y)]
-                path_to_apple(grid, (head_y, head_x), (apple_y, apple_x))
-                #exit()
-            #print(grid)
             direction = grid[head_y][head_x]
             pyautogui.press(direction)
 
         
-        cv2.imshow("ciao", img)
+        cv2.imshow("snake", bgrimg)
 
 
     if (cv2.waitKey(1) & 0xFF) == ord('q'):
